@@ -3,11 +3,8 @@ const cheerio = require('cheerio');
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-// Configurable
-// TODO: ability to pass these into exported function
-const TOURNAMENT = 'Regionals (North) 2019';
-const URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeI5t8hinpGgXfpzn1YD8JDA29crugWz2g_CxvZJ69xVcuvcwhMqe55-Ownr6Cm_GkMNJ0jRYlz1mp/pubhtml#';
 const POOL_RES_TAB_IDX = 3;
+const BRACKET_TAB_IDX = 3;
 
 async function getHTML(url) {
     const { data: html } = await axios.get(url);
@@ -18,7 +15,11 @@ function prettyPrint(obj) {
     console.log(JSON.stringify(obj, null, 2));
 }
 
-async function parseSchedule(url) {
+async function parseSchedule(url, {
+    tournament,
+    poolResTabIdx,
+    bracketResTabIdx,
+} = {}) {
     const html = await getHTML(url);
     const $ = cheerio.load(html);
 
@@ -26,16 +27,17 @@ async function parseSchedule(url) {
     // TODO: link pools to divisions
     // TODO: pass in tabs for division brackets
     // TODO: convert day & time into ISO string format
+    // TODO: option to not set net score on 1-0 results (default to doing this)
 
-    const initialSeedings = parseInitialSeedings($); // TODO: ability to pass functions to parse seeds according to division
-    const poolResults = parsePoolResults($); // TODO: convert pool seeds to overall seeds
-    const mixedBracketResults = parseBracketResults($, 4);
-    const openBracketResults = parseBracketResults($, 5);
+    const initialSeedings = parseInitialSeedings($); // TODO: ability to pass functions to parse seeds according to division, ability to filter to specific division
+    const poolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament }); // TODO: convert pool seeds to overall seeds, ability to filter to specific division
+    const bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx, tournament });
+    // const mixedBracketResults = parseBracketResults($, 4);
+    // const openBracketResults = parseBracketResults($, 5);
 
     const allGames = [
         ...poolResults,
-        ...mixedBracketResults,
-        ...openBracketResults,
+        ...bracketResults,
     ].sort((a, b) => {
         if (a.day === b.day) {
             return a.time < b.time ? -1 : a.time === b.time ? 0 : 1;
@@ -109,7 +111,7 @@ function parseInitialSeedings($, tabIdx = 0) {
                 }
             }
             else {
-                const seedsMatch = text.match(/^[A-Z]+\d+$/);
+                const seedsMatch = text.match(/^[A-Z]+\d+$/); // TODO: handle two letters or greek?
                 if (seedsMatch) {
                     parseIdx = 0;
                     seedings.push({
@@ -123,7 +125,7 @@ function parseInitialSeedings($, tabIdx = 0) {
     return seedings;
 }
 
-function parsePoolResults($, tabIdx = POOL_RES_TAB_IDX) {
+function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
     const cells = $('table').eq(tabIdx).find('td');
     const results = [];
     let parseIdx = null;
@@ -171,7 +173,7 @@ function parsePoolResults($, tabIdx = POOL_RES_TAB_IDX) {
                     parseIdx++;
             }
             else {
-                const seedsMatch = text.match(/^(\w+\d+)v(\w+\d+)$/);
+                const seedsMatch = text.match(/^(\w+\d+)v(\w+\d+)$/); // TODO: handle greek letters?
                 if (seedsMatch) {
                     parseIdx = 0;
                     results.push({
@@ -180,7 +182,7 @@ function parsePoolResults($, tabIdx = POOL_RES_TAB_IDX) {
                         }, {
                             seed: seedsMatch[2]
                         }],
-                        tournament: TOURNAMENT,
+                        tournament,
                     });
                 }
             }
@@ -189,7 +191,7 @@ function parsePoolResults($, tabIdx = POOL_RES_TAB_IDX) {
     return results;
 }
 
-function parseBracketResults($, tabIdx) {
+function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, tournament } = {}) {
     const rows = $('table').eq(tabIdx).find('tr');
     const bracketResults = [];
 
@@ -259,7 +261,7 @@ function parseBracketResults($, tabIdx) {
             const teamAbove = foundUnmatched[teamAboveIdx];
             const teamBelow = foundUnmatched[teamBelowIdx];
             bracketResults.push({
-                tournament: TOURNAMENT,
+                tournament,
                 pitch: meta.pitch,
                 day: meta.day,
                 time: meta.time,
@@ -288,7 +290,5 @@ function parseBracketResults($, tabIdx) {
 
     return bracketResults;
 }
-
-parseSchedule(URL);
 
 module.exports = parseSchedule;
