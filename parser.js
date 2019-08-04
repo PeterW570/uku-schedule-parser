@@ -4,15 +4,11 @@ const cheerio = require('cheerio');
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const POOL_RES_TAB_IDX = 3;
-const BRACKET_TAB_IDX = 3;
+const BRACKET_TAB_IDX = 4;
 
 async function getHTML(url) {
     const { data: html } = await axios.get(url);
     return html;
-}
-
-function prettyPrint(obj) {
-    console.log(JSON.stringify(obj, null, 2));
 }
 
 async function parseSchedule(url, {
@@ -78,8 +74,6 @@ async function parseSchedule(url, {
             time: game.time,
         });
     });
-
-    prettyPrint(resultsByTeam);
 
     return {
         allGames,
