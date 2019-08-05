@@ -9,6 +9,17 @@ const URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeI5t8hinpGgXfpzn1
 (async function() {
     const { resultsByTeam } = await parseSchedule(URL, {
         tournament: 'UKU Regionals (North) 2019',
+        divisions: {
+            'Open': {
+                pools: ['A', 'B'],
+                bracketTabIdx: 5,
+            },
+            'Mixed': {
+                pools: ['C', 'D'],
+                processSeed: initial => Number(initial) - 100,
+                bracketTabIdx: 4,
+            }
+        },
     });
 
     prettyPrint(resultsByTeam);

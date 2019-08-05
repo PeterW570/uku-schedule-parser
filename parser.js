@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
+const SEED_TAB_IDX = 0;
 const POOL_RES_TAB_IDX = 3;
 const BRACKET_TAB_IDX = 4;
 
@@ -11,40 +12,19 @@ async function getHTML(url) {
     return html;
 }
 
-async function parseSchedule(url, {
-    tournament,
-    poolResTabIdx,
-    bracketResTabIdx,
-} = {}) {
-    const html = await getHTML(url);
-    const $ = cheerio.load(html);
+function sortGamesByTime(a, b) {
+    if (a.day === b.day) {
+        return a.time < b.time ? -1 : a.time === b.time ? 0 : 1;
+    }
+    else {
+        return DAYS.findIndex(day => day === a.day.toLowerCase()) - DAYS.findIndex(day => day === b.day.toLowerCase());
+    }
+}
 
-    // TODO: save division in game data
-    // TODO: link pools to divisions
-    // TODO: pass in tabs for division brackets
-    // TODO: convert day & time into ISO string format
-    // TODO: option to not set net score on 1-0 results (default to doing this)
+function groupByTeam(games) {
+    const resultsByTeam = {};
 
-    const initialSeedings = parseInitialSeedings($); // TODO: ability to pass functions to parse seeds according to division, ability to filter to specific division
-    const poolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament }); // TODO: convert pool seeds to overall seeds, ability to filter to specific division
-    const bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx, tournament });
-    // const mixedBracketResults = parseBracketResults($, 4);
-    // const openBracketResults = parseBracketResults($, 5);
-
-    const allGames = [
-        ...poolResults,
-        ...bracketResults,
-    ].sort((a, b) => {
-        if (a.day === b.day) {
-            return a.time < b.time ? -1 : a.time === b.time ? 0 : 1;
-        }
-        else {
-            return DAYS.findIndex(day => day === a.day.toLowerCase()) - DAYS.findIndex(day => day === b.day.toLowerCase());
-        }
-    })
-
-    const resultsByTeam = {}; // TODO: make distinction between divisions
-    allGames.forEach(game => {
+    games.forEach(game => {
         if (!(game.teams[0].team in resultsByTeam)) {
             resultsByTeam[game.teams[0].team] = [];
         }
@@ -75,6 +55,70 @@ async function parseSchedule(url, {
         });
     });
 
+    return resultsByTeam;
+}
+
+async function parseSchedule(url, {
+    tournament,
+    seedTabIdx,
+    poolResTabIdx,
+    bracketResTabIdx,
+    divisions,
+} = {}) {
+    const html = await getHTML(url);
+    const $ = cheerio.load(html);
+
+    // TODO: convert day & time into ISO string format
+    // TODO: option to not set net score on 1-0 results (default to doing this)
+
+    let initialSeedings, poolResults, bracketResults, allGames, resultsByTeam = {};
+    if (divisions) {
+        initialSeedings = {};
+        poolResults = {};
+        bracketResults = {};
+        allGames = {};
+
+        const allSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
+        const allPoolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament });
+        Object.keys(divisions).forEach(division => {
+            const {
+                pools,
+                processSeed = (seed) => seed,
+                bracketTabIdx
+            } = divisions[division];
+            initialSeedings[division] = allSeedings
+                .filter(team => pools.some(pool => team.poolSeed.startsWith(pool)))
+                .map(team => ({
+                    ...team,
+                    seed: processSeed(team.seed),
+                }));
+
+            poolResults[division] = allPoolResults
+                .filter(game => pools.includes(game.pool));
+
+            bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx, tournament });
+
+            allGames[division] = [
+                ...poolResults[division],
+                ...bracketResults[division],
+            ].sort(sortGamesByTime);
+
+            resultsByTeam[division] = groupByTeam(allGames[division]);
+        });
+    }
+    else {
+        initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
+        poolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament });
+        bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx, tournament });
+
+        allGames = [
+            ...poolResults,
+            ...bracketResults,
+        ].sort(sortGamesByTime);
+
+        resultsByTeam = groupByTeam(allGames);
+    }
+
     return {
         allGames,
         resultsByTeam,
@@ -83,7 +127,7 @@ async function parseSchedule(url, {
     };
 }
 
-function parseInitialSeedings($, tabIdx = 0) {
+function parseInitialSeedings($, { tabIdx = SEED_TAB_IDX } = {}) {
     const cells = $('table').eq(tabIdx).find('td');
     const seedings = [];
 
@@ -167,16 +211,17 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
                     parseIdx++;
             }
             else {
-                const seedsMatch = text.match(/^(\w+\d+)v(\w+\d+)$/); // TODO: handle greek letters?
+                const seedsMatch = text.match(/^((\w+)\d+)v(\w+\d+)$/); // TODO: handle greek letters?
                 if (seedsMatch) {
                     parseIdx = 0;
                     results.push({
                         teams: [{
                             seed: seedsMatch[1]
                         }, {
-                            seed: seedsMatch[2]
+                            seed: seedsMatch[3]
                         }],
                         tournament,
+                        pool: seedsMatch[2],
                     });
                 }
             }
