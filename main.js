@@ -1,25 +1,21 @@
 const parseSchedule = require('./parser');
 
+/**
+ * conifg contains:
+ * URL - url of the google sheeet
+ * TOURNAMENT - name of the tournament
+ * DIVISIONS - ability to cinfigure for multiple divisions in a single sheet
+ */
+const config = require('./config'); // TODO: read from command line args
+
 function prettyPrint(obj) {
     console.log(JSON.stringify(obj, null, 2));
 }
 
-// TODO: read from command line args
-const URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSeI5t8hinpGgXfpzn1YD8JDA29crugWz2g_CxvZJ69xVcuvcwhMqe55-Ownr6Cm_GkMNJ0jRYlz1mp/pubhtml#';
 (async function() {
-    const { resultsByTeam } = await parseSchedule(URL, {
-        tournament: 'UKU Regionals (North) 2019',
-        divisions: {
-            'Open': {
-                pools: ['A', 'B'],
-                bracketTabIdx: 5,
-            },
-            'Mixed': {
-                pools: ['C', 'D'],
-                processSeed: initial => Number(initial) - 100,
-                bracketTabIdx: 4,
-            }
-        },
+    const { resultsByTeam } = await parseSchedule(config.URL, {
+        tournament: config.TOURNAMENT,
+        divisions: config.DIVISIONS,
     });
 
     prettyPrint(resultsByTeam);
