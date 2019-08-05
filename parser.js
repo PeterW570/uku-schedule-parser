@@ -139,7 +139,7 @@ function parseInitialSeedings($, { tabIdx = SEED_TAB_IDX } = {}) {
                 const parsing = seedings[seedings.length - 1];
                 switch (parseIdx) {
                     case 0:
-                        parsing.seed = Number(text);
+                        parsing.seed = text;
                         parseIdx++;
                         break;
                     case 1:
@@ -231,6 +231,9 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
 }
 
 function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, tournament } = {}) {
+    if (tabIdx === null)
+        return [];
+
     const rows = $('table').eq(tabIdx).find('tr');
     const bracketResults = [];
 
