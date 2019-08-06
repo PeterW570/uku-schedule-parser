@@ -7,6 +7,10 @@ You'll aslo need a config.js file. Example:
 module.exports = {
     URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTr1Y097yyn2EVatC1PwUzlX9GWxNZ8n7wEEhn4XbDRQkJwcUyuOy1_wO4JOuJqXKfV8b7wESEdLgrM/pubhtml#',
     TOURNAMENT: 'UKU Regionals (South) 2019',
+    DAYS_TO_DATES: {
+        'saturday': '2019-08-03',
+        'sunday': '2019-08-04',
+    },
     DIVISIONS: {
         'Open': {
             pools: ['E', 'F', 'G', 'H', 'J'],

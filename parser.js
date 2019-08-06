@@ -1,8 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
 const SEED_TAB_IDX = 0;
 const POOL_RES_TAB_IDX = 3;
 const BRACKET_TAB_IDX = 4;
@@ -10,15 +8,6 @@ const BRACKET_TAB_IDX = 4;
 async function getHTML(url) {
     const { data: html } = await axios.get(url);
     return html;
-}
-
-function sortGamesByTime(a, b) {
-    if (a.day === b.day) {
-        return a.time < b.time ? -1 : a.time === b.time ? 0 : 1;
-    }
-    else {
-        return DAYS.findIndex(day => day === a.day.toLowerCase()) - DAYS.findIndex(day => day === b.day.toLowerCase());
-    }
 }
 
 function groupByTeam(games) {
@@ -41,6 +30,7 @@ function groupByTeam(games) {
             pitch: game.pitch,
             day: game.day,
             time: game.time,
+            timestamp: game.timestamp,
         });
 
         resultsByTeam[game.teams[1].team].push({
@@ -52,6 +42,7 @@ function groupByTeam(games) {
             pitch: game.pitch,
             day: game.day,
             time: game.time,
+            timestamp: game.timestamp,
         });
     });
 
@@ -64,6 +55,7 @@ async function parseSchedule(url, {
     poolResTabIdx,
     bracketResTabIdx,
     divisions,
+    daysToDatesMap,
 } = {}) {
     const html = await getHTML(url);
     const $ = cheerio.load(html);
@@ -79,7 +71,7 @@ async function parseSchedule(url, {
         allGames = {};
 
         const allSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
-        const allPoolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament });
+        const allPoolResults = parsePoolResults($, { tabIdx: poolResTabIdx });
         Object.keys(divisions).forEach(division => {
             const {
                 pools,
@@ -96,25 +88,39 @@ async function parseSchedule(url, {
             poolResults[division] = allPoolResults
                 .filter(game => pools.includes(game.pool));
 
-            bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx, tournament });
+            bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx });
 
             allGames[division] = [
                 ...poolResults[division],
                 ...bracketResults[division],
-            ].sort(sortGamesByTime);
+            ].map(game => {
+                return {
+                    ...game,
+                    tournament,
+                    timestamp: `${daysToDatesMap[game.day.toLowerCase()]}T${game.time}:00.000Z`,
+                };
+            })
+            .sort((a, b) => a.timestamp < b.timestamp ? -1 : a.timestamp === b.timestamp ? 0 : 1);
 
             resultsByTeam[division] = groupByTeam(allGames[division]);
         });
     }
     else {
         initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
-        poolResults = parsePoolResults($, { tabIdx: poolResTabIdx, tournament });
-        bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx, tournament });
+        poolResults = parsePoolResults($, { tabIdx: poolResTabIdx });
+        bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx });
 
         allGames = [
             ...poolResults,
             ...bracketResults,
-        ].sort(sortGamesByTime);
+        ].map(game => {
+            return {
+                ...game,
+                tournament,
+                timestamp: `${daysToDatesMap[game.day.toLowerCase()]}T${game.time}:00.000Z`,
+            };
+        })
+        .sort((a, b) => a.timestamp < b.timestamp ? -1 : a.timestamp === b.timestamp ? 0 : 1);
 
         resultsByTeam = groupByTeam(allGames);
     }
@@ -163,7 +169,7 @@ function parseInitialSeedings($, { tabIdx = SEED_TAB_IDX } = {}) {
     return seedings;
 }
 
-function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
+function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX } = {}) {
     const cells = $('table').eq(tabIdx).find('td');
     const results = [];
     let parseIdx = null;
@@ -220,7 +226,6 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
                         }, {
                             seed: seedsMatch[3]
                         }],
-                        tournament,
                         pool: seedsMatch[2],
                     });
                 }
@@ -230,7 +235,7 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX, tournament } = {}) {
     return results;
 }
 
-function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, tournament } = {}) {
+function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
     if (tabIdx === null)
         return [];
 
@@ -303,7 +308,6 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, tournament } = {}) {
             const teamAbove = foundUnmatched[teamAboveIdx];
             const teamBelow = foundUnmatched[teamBelowIdx];
             bracketResults.push({
-                tournament,
                 pitch: meta.pitch,
                 day: meta.day,
                 time: meta.time,
