@@ -270,7 +270,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 reset();
             }
             else if (foundSeed !== false) {
-                if (text && !['→'].includes(text)) {
+                if (text && !['→', '├'].includes(text)) {
                     foundTeam = text;
                 }
                 else {
