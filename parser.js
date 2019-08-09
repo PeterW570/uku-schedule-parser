@@ -130,6 +130,7 @@ async function parseSchedule(url, {
         resultsByTeam,
         initialSeedings,
         poolResults,
+        bracketResults,
     };
 }
 
@@ -278,7 +279,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 }
             }
             else if (text) {
-                const metaMatch = text.match(/(Pitch \d+), (\w+) (\d\d:\d\d)/);
+                const metaMatch = text.match(/(Pitch \d+), (\w+) (\d\d:\d\d)/i);
                 if (metaMatch) {
                     foundMeta.push({
                         row: rowIdx,
@@ -298,11 +299,11 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
     foundMeta.forEach(meta => {
         const teamAboveIdx = foundUnmatched.findIndex(el => {
             return meta.row - el.rowIdx === 1
-                && meta.col >= el.colStartIdx && meta.col <= el.colEndIdx;
+                && (meta.col + 1) >= el.colStartIdx && meta.col <= el.colEndIdx;
         });
         const teamBelowIdx = foundUnmatched.findIndex(el => {
             return meta.row - el.rowIdx === -1
-                && meta.col >= el.colStartIdx && meta.col <= el.colEndIdx;
+                && (meta.col + 1) >= el.colStartIdx && meta.col <= el.colEndIdx;
         });
         if (teamAboveIdx > -1 && teamBelowIdx > -1) {
             const teamAbove = foundUnmatched[teamAboveIdx];
