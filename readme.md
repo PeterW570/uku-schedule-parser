@@ -30,3 +30,21 @@ module.exports = {
     },
 };
 ```
+
+If there's only one division you can do:
+```
+module.exports = {
+    URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtSsjpYD-QECw5YU75P66i-Fcx6UQwHJAJy92tJn_ZUIdMxjZWoyOgjUsVTgAZSp8scfsxdQ62FISb/pubhtml',
+    TOURNAMENT: 'Caledonia\’s Call 2019',
+    DAYS_TO_DATES: {
+        'saturday': '2019-05-18',
+        'sunday': '2019-05-19',
+    },
+    DIVISION: 'Mixed',
+    SEED_TAB_IDX: 0,
+    POOL_RES_TAB_IDX: 3,
+    BRACKET_RES_TAB_IDX: 4,
+};
+```
+
+`bracketTabIdx` or `BRACKET_RES_TAB_IDX` can be `null`, a number e.g. `4`, or an array of numbers e.g. `[4, 5]`

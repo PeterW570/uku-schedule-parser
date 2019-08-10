@@ -18,7 +18,11 @@ function prettyPrint(obj) {
     const { resultsByTeam } = await parseSchedule(config.URL, {
         tournament: config.TOURNAMENT,
         divisions: config.DIVISIONS,
+        division: config.DIVISION,
         daysToDatesMap: config.DAYS_TO_DATES,
+        seedTabIdx: config.SEED_TAB_IDX,
+        poolResTabIdx: config.POOL_RES_TAB_IDX,
+        bracketResTabIdx: config.BRACKET_RES_TAB_IDX,
     });
 
     prettyPrint(resultsByTeam);

@@ -55,6 +55,7 @@ async function parseSchedule(url, {
     poolResTabIdx,
     bracketResTabIdx,
     divisions,
+    division,
     daysToDatesMap,
 } = {}) {
     const html = await getHTML(url);
@@ -112,11 +113,11 @@ async function parseSchedule(url, {
     else {
         initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
         poolResults = parsePoolResults($, { tabIdx: poolResTabIdx });
-        if (Array.isArray(bracketTabIdx)) {
-            bracketResults = bracketTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
+        if (Array.isArray(bracketResTabIdx)) {
+            bracketResults = bracketResTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
         }
         else {
-            bracketResults = parseBracketResults($, { tabIdx: bracketTabIdx });
+            bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx });
         }
 
         allGames = [
@@ -132,6 +133,14 @@ async function parseSchedule(url, {
         .sort((a, b) => a.timestamp < b.timestamp ? -1 : a.timestamp === b.timestamp ? 0 : 1);
 
         resultsByTeam = groupByTeam(allGames);
+
+        if (division) {
+            initialSeedings = { [division]: initialSeedings };
+            poolResults = { [division]: poolResults };
+            bracketResults = { [division]: bracketResults };
+            allGames = { [division]: allGames };
+            resultsByTeam = { [division]: resultsByTeam };
+        }
     }
 
     return {
