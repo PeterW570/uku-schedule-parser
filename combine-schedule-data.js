@@ -28,6 +28,17 @@ function combineTournamentScheedules(scheduleFolder) {
         });
     });
 
+    for (division in teamsByDivision) {
+        for (teamData of teamsByDivision[division]) {
+            teamData.games = teamData.games.sort((a, b) => {
+                return a.timestamp < b.timestamp ? -1 : 1;
+            });
+        }
+        teamsByDivision[division] = teamsByDivision[division].sort((a, b) => {
+            return a.team < b.team ? -1 : 1;
+        });
+    }
+
     return teamsByDivision;
 }
 
