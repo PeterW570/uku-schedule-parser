@@ -88,7 +88,12 @@ async function parseSchedule(url, {
             poolResults[division] = allPoolResults
                 .filter(game => pools.includes(game.pool));
 
+            if (Array.isArray(bracketTabIdx)) {
+                bracketResults[division] = bracketTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
+            }
+            else {
             bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx });
+            }
 
             allGames[division] = [
                 ...poolResults[division],
@@ -108,7 +113,12 @@ async function parseSchedule(url, {
     else {
         initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
         poolResults = parsePoolResults($, { tabIdx: poolResTabIdx });
-        bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx });
+        if (Array.isArray(bracketTabIdx)) {
+            bracketResults = bracketTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
+        }
+        else {
+            bracketResults = parseBracketResults($, { tabIdx: bracketTabIdx });
+        }
 
         allGames = [
             ...poolResults,
