@@ -60,7 +60,6 @@ async function parseSchedule(url, {
     const html = await getHTML(url);
     const $ = cheerio.load(html);
 
-    // TODO: convert day & time into ISO string format
     // TODO: option to not set net score on 1-0 results (default to doing this)
 
     let initialSeedings, poolResults, bracketResults, allGames, resultsByTeam = {};
@@ -92,7 +91,7 @@ async function parseSchedule(url, {
                 bracketResults[division] = bracketTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
             }
             else {
-            bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx });
+                bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx });
             }
 
             allGames[division] = [
@@ -186,7 +185,7 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX } = {}) {
     let parseIdx = null;
     cells.each((idx, c) => {
         const text = $(c).text();
-        if (text) {
+        if (text || parseIdx === 2) {
             if (parseIdx !== null) {
                 const lastResult = results[results.length - 1];
                 switch (parseIdx) {
@@ -217,14 +216,20 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX } = {}) {
                         lastResult.teams[1].team = text;
                         break;
                     case 5:
-                        const metaMatch = text.match(/(\w+), (\d\d:\d\d) - (\w+ \d)/);
-                        lastResult.day = metaMatch[1];
-                        lastResult.time = metaMatch[2];
-                        lastResult.pitch = metaMatch[3];
+                        if (text.toLowerCase() === 'carried over') {
+                            parseIdx = null;
+                            results.pop();
+                        }
+                        else {
+                            const metaMatch = text.match(/(\w+), (\d\d:\d\d) - (\w+ \d)/);
+                            lastResult.day = metaMatch[1];
+                            lastResult.time = metaMatch[2];
+                            lastResult.pitch = metaMatch[3];
+                        }
                 }
                 if (parseIdx === 5)
                     parseIdx = null;
-                else
+                else if (parseIdx !== null)
                     parseIdx++;
             }
             else {
