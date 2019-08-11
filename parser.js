@@ -242,7 +242,7 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX } = {}) {
                     parseIdx++;
             }
             else {
-                const seedsMatch = text.match(/^((\w+)\d+)v(\w+\d+)$/); // TODO: handle greek letters?
+                const seedsMatch = text.match(/^(([\w\u0370-\u03FF]+)\d+)v([\w\u0370-\u03FF]+\d+)$/); // Regex matches word, greek & coptic chars
                 if (seedsMatch) {
                     parseIdx = 0;
                     results.push({
