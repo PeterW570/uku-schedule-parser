@@ -277,10 +277,35 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
         foundTeam = false;
     }
 
+    const hardMerges = [];
+
     rows.each((rowIdx, r) => {
         const cells = $(r).find('td');
         cells.each((cellIdx, c) => {
             const text = $(c).text();
+            const colspan = $(c).attr('colspan');
+            const rowspan = $(c).attr('rowspan');
+            const colIdx = hardMerges
+                .filter(spec => spec.rowStartIdx <= rowIdx && spec.rowEndIdx > rowIdx)
+                .reduce((acc, mergeSpec) => {
+                if (mergeSpec.colIdx > acc) {
+                    return acc;
+                }
+                else if (rowIdx === mergeSpec.rowStartIdx) {
+                    return acc + mergeSpec.colspan - 1;
+                }
+                else {
+                    return acc + mergeSpec.colspan;
+                }
+            }, cellIdx);
+            if (colspan && rowspan) {
+                hardMerges.push({
+                    rowStartIdx: rowIdx,
+                    rowEndIdx: rowIdx + Number(rowspan),
+                    colIdx,
+                    colspan: Number(colspan),
+                });
+            }
             if (foundTeam !== false) {
                 if (text && !isNaN(parseInt(text))) {
                     foundUnmatched.push({
@@ -288,8 +313,8 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                         seed: foundSeed,
                         score: Number(text),
                         rowIdx,
-                        colStartIdx: cellIdx - 2,
-                        colEndIdx: cellIdx,
+                        colStartIdx: colIdx - 2,
+                        colEndIdx: colIdx,
                     });
                 }
                 reset();
@@ -307,7 +332,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 if (metaMatch) {
                     foundMeta.push({
                         row: rowIdx,
-                        col: cellIdx,
+                        col: colIdx,
                         pitch: metaMatch[1],
                         day: metaMatch[2],
                         time: metaMatch[3]
