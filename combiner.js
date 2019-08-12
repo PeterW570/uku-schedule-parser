@@ -26,6 +26,7 @@ const ALIASES = {
         'Chaos & Brixton': 'Chaos x Brixton',
         'Scram 1': 'SCRAM 1',
         'Scram 2': 'SCRAM 2',
+        'SMOG Women': 'SMOG Women 1',
     },
     'Mixed': {
         'Black Sheep': 'Black Sheep Mixed 1',
@@ -35,6 +36,7 @@ const ALIASES = {
         'Cambridge 1': 'Cambridge Ultimate 1',
         'Cambridge 2': 'Cambridge Ultimate 2',
         'Curve': 'Curve Mixed',
+        'Geometrically Frustrated Magnets': 'Geometrically Frustrated Magnets 1',
         'Horsham': 'Horsham Ultimate',
         'LED': 'LED Mixed',
         'LLLeeds Mixed  1': 'LLLeeds Mixed 1',
