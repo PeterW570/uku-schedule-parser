@@ -10,7 +10,7 @@ const parseSchedule = require('./parser');
  * SEED_TAB_IDX - (0 based) index
  * POOL_RES_TAB_IDX - (0 based) index of the pool result tab
  * BRACKET_RES_TAB_IDX - can be null, a (0 based) index, or an array of (0 based) indices
- * TODO: specify what you want to print out
+ * TO_PRINT - specify which object from parseSchedule you want to print (defaults to resultsByTeam)
  */
 const config = require('./config'); // TODO: read from command line args
 
@@ -19,15 +19,20 @@ function prettyPrint(obj) {
 }
 
 (async function() {
-    const { resultsByTeam } = await parseSchedule(config.URL, {
-        tournament: config.TOURNAMENT,
-        divisions: config.DIVISIONS,
-        division: config.DIVISION,
-        daysToDatesMap: config.DAYS_TO_DATES,
-        seedTabIdx: config.SEED_TAB_IDX,
-        poolResTabIdx: config.POOL_RES_TAB_IDX,
-        bracketResTabIdx: config.BRACKET_RES_TAB_IDX,
-    });
-
-    prettyPrint(resultsByTeam);
+    try {
+        const parsedRes = await parseSchedule(config.URL, {
+            tournament: config.TOURNAMENT,
+            divisions: config.DIVISIONS,
+            division: config.DIVISION,
+            daysToDatesMap: config.DAYS_TO_DATES,
+            seedTabIdx: config.SEED_TAB_IDX,
+            poolResTabIdx: config.POOL_RES_TAB_IDX,
+            bracketResTabIdx: config.BRACKET_RES_TAB_IDX,
+        });
+        const toPrint = config.TO_PRINT || 'resultsByTeam';
+        prettyPrint(parsedRes[toPrint]);
+    }
+    catch (err) {
+        console.error(err);
+    }
 })();
