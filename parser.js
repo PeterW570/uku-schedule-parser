@@ -343,6 +343,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 }
             }
         });
+        reset();
     });
 
     foundMeta.forEach(meta => {
