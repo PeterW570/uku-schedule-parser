@@ -57,17 +57,20 @@ async function parseSchedule(url, {
     divisions,
     division,
     daysToDatesMap,
+    processPoolSeed,
+    processBracketSeed,
 } = {}) {
     const html = await getHTML(url);
     const $ = cheerio.load(html);
 
     // TODO: option to not set net score on 1-0 results (default to doing this)
 
-    let initialSeedings, poolResults, bracketResults, allGames, resultsByTeam = {};
+    let initialSeedings, poolResults, bracketResults, allGames, finalPlacings, resultsByTeam = {};
     if (divisions) {
         initialSeedings = {};
         poolResults = {};
         bracketResults = {};
+        finalPlacings = {};
         allGames = {};
 
         const allSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
@@ -89,10 +92,18 @@ async function parseSchedule(url, {
                 .filter(game => pools.includes(game.pool));
 
             if (Array.isArray(bracketTabIdx)) {
-                bracketResults[division] = bracketTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
+                bracketResults[division] = [];
+                finalPlacings[division] = [];
+                bracketTabIdx.forEach(tabIdx =>  {
+                    const { results, placings } = parseBracketResults($, { tabIdx });
+                    bracketResults[division].push(...results);
+                    finalPlacings[division].push(...placings);
+                });
             }
             else {
-                bracketResults[division] = parseBracketResults($, { tabIdx: bracketTabIdx });
+                const { results, placings } = parseBracketResults($, { tabIdx: bracketTabIdx });
+                bracketResults[division] = results;
+                finalPlacings[division] = placings;
             }
 
             allGames[division] = [
@@ -111,13 +122,31 @@ async function parseSchedule(url, {
         });
     }
     else {
-        initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx });
+        initialSeedings = parseInitialSeedings($, { tabIdx: seedTabIdx })
+            .map(seeding => {
+                let seed = seeding.seed;
+                if (processPoolSeed) {
+                    seed = processPoolSeed(seed);
+                }
+                return {
+                    ...seeding,
+                    seed,
+                };
+            });
         poolResults = parsePoolResults($, { tabIdx: poolResTabIdx });
         if (Array.isArray(bracketResTabIdx)) {
-            bracketResults = bracketResTabIdx.reduce((res, tabIdx) => res.concat(parseBracketResults($, { tabIdx })), []);
+            bracketResults = [];
+            finalPlacings = [];
+            bracketResTabIdx.forEach(tabIdx =>  {
+                const { results, placings } = parseBracketResults($, { tabIdx, processSeed: processBracketSeed });
+                bracketResults.push(...results);
+                finalPlacings.push(...placings);
+            });
         }
         else {
-            bracketResults = parseBracketResults($, { tabIdx: bracketResTabIdx });
+            const { results, placings } = parseBracketResults($, { tabIdx: bracketResTabIdx, processSeed: processBracketSeed });
+            bracketResults = results;
+            finalPlacings = placings;
         }
 
         allGames = [
@@ -140,6 +169,7 @@ async function parseSchedule(url, {
             bracketResults = { [division]: bracketResults };
             allGames = { [division]: allGames };
             resultsByTeam = { [division]: resultsByTeam };
+            finalPlacings = { [division]: finalPlacings };
         }
     }
 
@@ -149,6 +179,7 @@ async function parseSchedule(url, {
         initialSeedings,
         poolResults,
         bracketResults,
+        finalPlacings,
     };
 }
 
@@ -260,7 +291,7 @@ function parsePoolResults($, { tabIdx = POOL_RES_TAB_IDX } = {}) {
     return results;
 }
 
-function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
+function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, processSeed = s => s } = {}) {
     if (tabIdx === null)
         return [];
 
@@ -271,6 +302,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
     let foundTeam = false;
     let foundUnmatched = [];
     const foundMeta = [];
+    const finalPlacings = [];
 
     function reset() {
         foundSeed = false;
@@ -310,11 +342,17 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 if (text && !isNaN(parseInt(text))) {
                     foundUnmatched.push({
                         team: foundTeam,
-                        seed: foundSeed,
+                        seed: processSeed(foundSeed),
                         score: Number(text),
                         rowIdx,
                         colStartIdx: colIdx - 2,
                         colEndIdx: colIdx,
+                    });
+                }
+                else {
+                    finalPlacings.push({
+                        team: foundTeam,
+                        seed: processSeed(foundSeed)
                     });
                 }
                 reset();
@@ -343,6 +381,12 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
                 }
             }
         });
+        if (foundSeed && foundTeam) {
+            finalPlacings.push({
+                team: foundTeam,
+                seed: processSeed(foundSeed)
+            });
+        }
         reset();
     });
 
@@ -385,7 +429,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX } = {}) {
         }
     });
 
-    return bracketResults;
+    return { results: bracketResults, placings: finalPlacings };
 }
 
 module.exports = parseSchedule;
