@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ALIASES = require('./team-aliases.json');
+const ALIASES = JSON.parse(fs.readFileSync('./team-aliases.json', 'utf8').replace(/\\"/g, `'`));
 
 function combineTournamentSchedules(scheduleFolder) {
     const teamsByDivision = {
@@ -49,5 +49,5 @@ function prettyPrint(obj) {
     console.log(JSON.stringify(obj, null, 2));
 }
 
-const combinedData = combineTournamentSchedules('./parsed_schedules');
+const combinedData = combineTournamentSchedules('./parsed_schedules/grouped_by_team');
 prettyPrint(combinedData);

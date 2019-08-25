@@ -316,7 +316,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, processSeed = s => s
         cells.each((cellIdx, c) => {
             const text = $(c).text();
             const colspan = $(c).attr('colspan');
-            const rowspan = $(c).attr('rowspan');
+            const rowspan = $(c).attr('rowspan') || 1;
             const colIdx = hardMerges
                 .filter(spec => spec.rowStartIdx <= rowIdx && spec.rowEndIdx > rowIdx)
                 .reduce((acc, mergeSpec) => {
@@ -358,7 +358,7 @@ function parseBracketResults($, { tabIdx = BRACKET_TAB_IDX, processSeed = s => s
                 reset();
             }
             else if (foundSeed !== false) {
-                if (text && !['→', '├'].includes(text)) {
+                if (text && !['→', '├', '└', '─', '┤', '│', '┐', '┘'].includes(text)) {
                     foundTeam = text;
                 }
                 else {
